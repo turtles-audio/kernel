@@ -1,0 +1,12 @@
+[build]
+target = "armv7a-none-eabi"
+
+[target.armv7a-none-eabi]
+linker = "arm-none-eabi-gcc"
+rustflags = [
+    "-C",
+    "link-arg=-nostartfiles",
+    "-C",
+    "link-arg=-Tsrc/core/kernel.ld",
+    "-Zlocation-detail=none",
+]
