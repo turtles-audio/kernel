@@ -1,7 +1,7 @@
 [build]
-target = "armv7a-none-eabi"
+target = "thumbv7em-none-eabihf"
 
-[target.armv7a-none-eabi]
+[target.thumbv7em-none-eabihf]
 linker = "arm-none-eabi-gcc"
 rustflags = [
     "-C",
@@ -9,4 +9,6 @@ rustflags = [
     "-C",
     "link-arg=-Tsrc/core/kernel.ld",
     "-Zlocation-detail=none",
+    "-C",
+    "link-arg=-mcpu=cortex-m7",
 ]

@@ -1,3 +1,5 @@
+use super::led::Color;
+
 const GPIO_BASE: u32 = 0x58020000;
 
 const GPIOA_BASE: u32 = GPIO_BASE;
@@ -22,6 +24,20 @@ const GPIO_BSSR: u32 = 0x18;
 const GPIO_LCKR: u32 = 0x1C;
 const GPIO_AFRL: u32 = 0x20;
 const GPIO_AFRH: u32 = 0x24;
+
+pub enum State {
+    High,
+    Low,
+}
+
+impl State {
+    pub fn bit(state: Self) -> u32 {
+        return match state {
+            State::High => 0b1,
+            State::Low => 0b0,
+        };
+    }
+}
 
 pub enum Pin {
     A0,
@@ -200,6 +216,17 @@ pub enum Pin {
     K13,
     K14,
     K15,
+}
+
+impl From<Color> for Pin {
+    fn from(item: Color) -> Self {
+        return match item {
+            Color::Green => Pin::I12,
+            Color::Orange => Pin::I13,
+            Color::Red => Pin::I14,
+            Color::Blue => Pin::I15,
+        };
+    }
 }
 
 pub fn register(pin: &Pin) -> u32 {
@@ -383,11 +410,39 @@ pub fn register(pin: &Pin) -> u32 {
     };
 }
 
-pub fn write(pin: Pin) -> Result<(), ()> {
-    let bssr = (register(&pin) + GPIO_BSSR) as *mut u32;
+pub fn write(pin: Pin, state: State) -> Result<(), ()> {
+    let odr = (register(&pin) + GPIO_ODR) as *mut u32;
 
     unsafe {
-        *bssr = 1 << (pin as u32) % 16;
+        match state {
+            State::High => *odr |= 0b1 << (pin as u32) % 16,
+            State::Low => *odr &= !(0b1 << (pin as u32) % 16),
+        }
+    }
+
+    return Ok(());
+}
+
+pub fn read(pin: Pin) -> State {
+    let idr: *mut u32 = (register(&pin) + GPIO_IDR) as *mut u32;
+
+    unsafe {
+        let bit: u32 = 0b1 & (*idr >> (pin as u32) % 16);
+
+        return match bit {
+            0b0 => State::Low,
+            _ => State::High,
+        };
+    }
+}
+
+pub fn toggle(pin: Pin, state: State) -> Result<(), ()> {
+    let moder: *mut u32 = (register(&pin) + GPIO_MODER) as *mut u32;
+    let pin_index: u32 = pin as u32;
+
+    unsafe {
+        *moder &= !(0b11 << (pin_index * 2));
+        *moder |= State::bit(state) << (pin_index * 2);
     }
 
     return Ok(());
