@@ -1,7 +1,10 @@
+// Needed for converting from LED color values
 use super::led::Color;
 
+// GPIO register base
 const GPIO_BASE: u32 = 0x58020000;
 
+// GPIO slot bases
 const GPIOA_BASE: u32 = GPIO_BASE;
 const GPIOB_BASE: u32 = GPIO_BASE + 0x400;
 const GPIOC_BASE: u32 = GPIO_BASE + 0x800;
@@ -14,6 +17,7 @@ const GPIOI_BASE: u32 = GPIO_BASE + 0x2000;
 const GPIOJ_BASE: u32 = GPIO_BASE + 0x2400;
 const GPIOK_BASE: u32 = GPIO_BASE + 0x2800;
 
+// GPIO register offsets (within each slot)
 const GPIO_MODER: u32 = 0x00;
 const GPIO_OTYPER: u32 = 0x04;
 const GPIO_OSPEEDR: u32 = 0x08;
@@ -25,12 +29,14 @@ const GPIO_LCKR: u32 = 0x1C;
 const GPIO_AFRL: u32 = 0x20;
 const GPIO_AFRH: u32 = 0x24;
 
+/// Represents the read/write value for a GPIO pin
 pub enum State {
     High,
     Low,
 }
 
 impl State {
+    /// Convert to the binary representation of the State
     pub fn bit(state: Self) -> u32 {
         return match state {
             State::High => 0b1,
@@ -39,6 +45,7 @@ impl State {
     }
 }
 
+/// Specifies the selected GPIO pin
 pub enum Pin {
     A0,
     A1,
@@ -219,6 +226,7 @@ pub enum Pin {
 }
 
 impl From<Color> for Pin {
+    /// Convert a Color to a Pin
     fn from(item: Color) -> Self {
         return match item {
             Color::Green => Pin::I12,
@@ -229,6 +237,7 @@ impl From<Color> for Pin {
     }
 }
 
+/// Match the register base to the specified pin
 pub fn register(pin: &Pin) -> u32 {
     return match pin {
         Pin::A0
@@ -410,10 +419,13 @@ pub fn register(pin: &Pin) -> u32 {
     };
 }
 
+/// Write out to a specific pin
 pub fn write(pin: Pin, state: State) -> Result<(), ()> {
+    // Get the ODR register of the pin
     let odr = (register(&pin) + GPIO_ODR) as *mut u32;
 
     unsafe {
+        // Write the state out to the register
         match state {
             State::High => *odr |= 0b1 << (pin as u32) % 16,
             State::Low => *odr &= !(0b1 << (pin as u32) % 16),
@@ -423,12 +435,16 @@ pub fn write(pin: Pin, state: State) -> Result<(), ()> {
     return Ok(());
 }
 
+/// Read the value of a specific pin
 pub fn read(pin: Pin) -> State {
+    // Get the IDR register of the pin
     let idr: *mut u32 = (register(&pin) + GPIO_IDR) as *mut u32;
 
     unsafe {
+        // Read the specific input bit
         let bit: u32 = 0b1 & (*idr >> (pin as u32) % 16);
 
+        // Match to a specific State
         return match bit {
             0b0 => State::Low,
             _ => State::High,
@@ -436,11 +452,13 @@ pub fn read(pin: Pin) -> State {
     }
 }
 
+/// Alter the MODER of a specific pin, allowing it to be written to
 pub fn toggle(pin: Pin, state: State) -> Result<(), ()> {
     let moder: *mut u32 = (register(&pin) + GPIO_MODER) as *mut u32;
     let pin_index: u32 = pin as u32;
 
     unsafe {
+        // Change MODER register values
         *moder &= !(0b11 << (pin_index * 2));
         *moder |= State::bit(state) << (pin_index * 2);
     }

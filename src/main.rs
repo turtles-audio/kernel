@@ -12,7 +12,8 @@ pub fn kernel() -> ! {
     rcc::peripherals();
     led::init();
 
-    led::on(led::Color::Blue);
+    led::on(led::Color::Green);
+    led::off(led::Color::Red);
 
     loop {}
 }
