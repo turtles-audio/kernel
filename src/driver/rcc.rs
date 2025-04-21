@@ -23,6 +23,9 @@ pub fn ltdc() -> Result<(), ()> {
         // Toggle the LTDC flag in APB3ENR
         *reg |= 1 << 3;
         
+        // Toggle the DSI flag in APB3ENR
+        *reg |= 1 << 4;
+
         // Check if the change is saved
         if 1 & (*reg >> 3) == 1 {
            return Ok(());
