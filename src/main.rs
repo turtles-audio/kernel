@@ -2,10 +2,12 @@
 #![no_std]
 
 mod driver;
+mod video;
 mod panic;
 mod runtime;
 
 use driver::*;
+use video::frame::{Color, Layer, Side};
 
 #[unsafe(no_mangle)]
 pub fn kernel() -> ! {
@@ -13,7 +15,15 @@ pub fn kernel() -> ! {
     led::init();
 
     led::on(led::Color::Green);
-    led::off(led::Color::Red);
+
+    loop {}
+}
+
+#[unsafe(no_mangle)]
+pub fn fault() -> ! {
+    led::init();
+
+    led::on(led::Color::Red);
 
     loop {}
 }

@@ -6,7 +6,7 @@ BINARY=kernel
 OUTPUT=$(TARGET)\$(TOOLCHAIN)\$(MODE)\$(BINARY)
 
 all: $(OUTPUT)
-	move $< $<.elf
+	cp "$<" "$<.elf"
 
 $(OUTPUT): .FORCE
 	cargo build --release
