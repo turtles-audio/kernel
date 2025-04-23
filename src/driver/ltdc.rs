@@ -5,8 +5,14 @@ const LTDC_BPCR: u32 = LTDC_BASE + 0xC;
 const LTDC_AWCR: u32 = LTDC_BASE + 0x10;
 const LTDC_TWCR: u32 = LTDC_BASE + 0x14;
 const LTDC_GCR: u32 = LTDC_BASE + 0x18;
+const LTDC_BCCR: u32 = LTDC_BASE + 0x2C;
 const LTDC_IER: u32 = LTDC_BASE + 0x34;
 const LTDC_LIPCR: u32 = LTDC_BASE + 0x40;
+
+const LTDC_LCR: u32 = LTDC_BASE + 0x84;
+const LTDC_LWHPCR: u32 = LTDC_BASE + 0x88;
+const LTDC_LWVPCR: u32 = LTDC_BASE + 0x8C;
+const LTDC_LPFCR:u32  = LTDC_BASE + 0x94;
 
 /// Defines the size of a porch in pixels and lines
 pub struct Porch {
@@ -14,14 +20,75 @@ pub struct Porch {
     lines: u32,
 }
 
+pub struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+impl Color {
+    pub fn new(r: u8, g: u8, b: u8) -> Color {
+        return Color {
+            r, g, b, a: 0
+        }
+    }
+
+    pub fn as_argb8(self: Self) -> u32 {
+        let r = self.r as u32;
+        let g = self.g as u32;
+        let b = self.b as u32;
+        let a = self.a as u32;
+
+        return a << 24 | r << 16 | g << 8 | b;
+    }
+
+    pub fn as_rgb(self: Self) -> u32 {
+        let r = self.r as u32;
+        let g = self.g as u32;
+        let b = self.b as u32;
+
+        return r << 16 | g << 8 | b;
+    }
+
+    pub fn as_rgb565(self: Self) -> u32 {
+        let r = self.r as u32 & 0b11111;
+        let g = self.g as u32 & 0b111111;
+        let b = self.b as u32 & 0b11111;
+
+        return r << 11 | g << 6 | b;
+    }
+
+
+}
+
 pub enum Polarity {
     High,
     Low
 }
 
-pub enum Layer {
-    Top,
-    Bottom
+pub enum Format {
+
+}
+
+pub enum Side {
+    Top, Bottom
+}
+
+pub struct Layer {
+    side: Side,
+    format: Format,
+    width: u16,
+    height: u16,
+}
+
+impl Layer {
+    pub fn offset(self: Self) -> u32 {
+        return match self.side {
+            Side::Top => 0,
+            Side::Bottom => 0x80,
+        }
+    }
 }
 
 impl From<Polarity> for u32 {
@@ -82,10 +149,28 @@ pub fn interrupts(height: u32) {
     }
 }
 
-pub fn layer(layer: Layer, buffer: FrameBuffer) {
-    let gcr = LTDC_GCR as *mut u32;
+pub fn background(color: Color) {
+    let bccr = LTDC_BCCR as *mut u32;
 
     unsafe {
+        *bccr = color.as_rgb();
+    }
+}
+
+pub fn layer(layer: Layer) {
+    let gcr = LTDC_GCR as *mut u32;
+    let offset = layer.offset();
+
+    let lcr = (LTDC_LCR + offset) as *mut u32;
+    let lwhpcr = (LTDC_LWHPCR + offset) as *mut u32;
+    let lwvpcr = (LTDC_LWVPCR + offset) as *mut u32;
+    let lpfcr = (LTDC_LPFCR + offset) as *mut u32;
+
+
+    unsafe {
+        // Enable the layer
+        *lcr |= 0b1;
+
         // Finally, enable the LTDC with the enable bit
         *gcr |= 0b1;
     }
