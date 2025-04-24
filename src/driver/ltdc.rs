@@ -1,5 +1,7 @@
 use crate::video::frame::{Polarity, Color, Layer};
 
+use super::gpio;
+
 const LTDC_BASE: u32 = 0x50001000;
 
 const LTDC_SSCR: u32 = LTDC_BASE + 0x8;
@@ -29,6 +31,12 @@ impl Porch {
             lines: height,
         };
     }
+}
+
+/// LTDC Init Sequence
+pub fn init() {
+    gpio::toggle(gpio::Pin::J12, gpio::State::High).unwrap();
+    gpio::write(gpio::Pin::J12, gpio::State::High).unwrap();
 }
 
 /// Configure LTDC timings

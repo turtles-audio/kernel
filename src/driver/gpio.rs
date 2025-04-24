@@ -45,6 +45,42 @@ impl State {
     }
 }
 
+pub enum Pull {
+    None,
+    Up,
+    Down,
+    Reserved
+}
+
+impl From<Pull> for u32 {
+    fn from(pull: Pull) -> u32 {
+        return match pull {
+            Pull::None => 0b00,
+            Pull::Up => 0b01,
+            Pull::Down => 0b10,
+            Pull::Reserved => 0b11
+        }; 
+    }
+}
+
+pub enum Speed {
+    Low,
+    Medium,
+    High,
+    VeryHigh
+}
+
+impl From<Speed> for u32 {
+    fn from(speed: Speed) -> u32 {
+        return match speed {
+            Speed::Low => 0b00,
+            Speed::Medium => 0b01,
+            Speed::High => 0b10,
+            Speed::VeryHigh => 0b11
+        }; 
+    }
+}
+
 /// Specifies the selected GPIO pin
 pub enum Pin {
     A0,
@@ -464,4 +500,24 @@ pub fn toggle(pin: Pin, state: State) -> Result<(), ()> {
     }
 
     return Ok(());
+}
+
+pub fn pull(pin: Pin, pull: Pull) {
+    let pupdr: *mut u32 = (register(&pin) + GPIO_PUPDR) as *mut u32;
+    let pin_index: u32 = pin as u32;
+
+    unsafe {
+        *pupdr &= !(0b11 << (pin_index * 2));
+        *pupdr |= (u32::from(pull)) << (pin_index * 2);
+    }
+}
+
+pub fn speed(pin: Pin, speed: Speed) {
+    let ospeedr: *mut u32 = (register(&pin) + GPIO_OSPEEDR) as *mut u32;
+    let pin_index: u32 = pin as u32;
+
+    unsafe {
+        *ospeedr &= !(0b11 << (pin_index * 2));
+        *ospeedr |= (u32::from(speed)) << (pin_index * 2);
+    }
 }
