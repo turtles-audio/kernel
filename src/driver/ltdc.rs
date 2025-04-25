@@ -18,6 +18,10 @@ const LTDC_LWHPCR: u32 = LTDC_BASE + 0x88;
 const LTDC_LWVPCR: u32 = LTDC_BASE + 0x8C;
 const LTDC_LPFCR:u32  = LTDC_BASE + 0x94;
 
+const LTDC_LCFBAR: u32 = LTDC_BASE + 0xAC;
+const LTDC_LCFBLR: u32 = LTDC_BASE + 0xB0;
+const LTDC_LCFBLNR: u32 = LTDC_BASE + 0xB4;
+
 /// Defines the size of a porch in pixels and lines
 pub struct Porch {
     pixels: u32,
@@ -35,8 +39,15 @@ impl Porch {
 
 /// LTDC Init Sequence
 pub fn init() {
+    let gcr = LTDC_GCR as *mut u32;
+
     gpio::toggle(gpio::Pin::J12, gpio::State::High).unwrap();
+    gpio::speed(gpio::Pin::J12, gpio::Speed::High);
     gpio::write(gpio::Pin::J12, gpio::State::High).unwrap();
+
+    unsafe {
+        *gcr |= 0b1;
+    }
 }
 
 /// Configure LTDC timings
@@ -99,10 +110,19 @@ pub fn background(color: Color) {
 pub fn layer(layer: &Layer) {
     let offset = layer.offset();
 
+    let x = layer.x as u32 & 0x3FF;
+    let y = layer.y as u32 & 0x3FF;
+
+    let width = layer.width as u32 & 0x3FF;
+    let height = layer.height as u32 & 0x3FF;
+
     let lcr = (LTDC_LCR + offset) as *mut u32;
     let lwhpcr = (LTDC_LWHPCR + offset) as *mut u32;
     let lwvpcr = (LTDC_LWVPCR + offset) as *mut u32;
     let lpfcr = (LTDC_LPFCR + offset) as *mut u32;
+    let lcfbar = (LTDC_LCFBAR + offset) as *mut u32;
+    let lcfblr = (LTDC_LCFBLR + offset) as *mut u32;
+    let lcfblnr = (LTDC_LCFBLNR + offset) as *mut u32;
 
     if !layer.enabled {
         unsafe {
@@ -110,12 +130,18 @@ pub fn layer(layer: &Layer) {
         }
 
         return;
-    }
+    } else {
+        unsafe {
+            *lwhpcr = (x + width) << 16 | x;
+            *lwvpcr = (y + height) << 16 | y;
+            *lpfcr = 0b1;
 
-    unsafe {
+            *lcfbar = 0x30094000;
+            *lcfblr = width * 3;
+            *lcfblnr = height;
 
-
-        // Enable the layer
-        *lcr |= 0b1;
+            // Enable the layer
+            *lcr |= 0b1;
+        }
     }
 }
